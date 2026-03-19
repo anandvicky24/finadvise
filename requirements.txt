@@ -1,0 +1,9 @@
+langchain
+langgraph
+langchain-groq
+langchain-google-genai
+yfinance
+streamlit
+faiss-cpu
+python-dotenv
+langchain-community
