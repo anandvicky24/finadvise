@@ -19,28 +19,49 @@ class AgentState(TypedDict):
     messages: Annotated[List[any], operator.add]
     history: Annotated[List[str], operator.add]
     
-fast_llm = ChatGoogleGenerativeAI(
-    model="gemini-1.5-flash",
-    temperature=0,
-    google_api_key=os.getenv("GOOGLE_API_KEY") # Picked up from Streamlit Secrets or .env
-).bind_tools(tools)
-
-smart_llm = ChatGoogleGenerativeAI(
-    model="gemini-1.5-pro",
-    temperature=0,
-    google_api_key=os.getenv("GOOGLE_API_KEY")
-)
+fast_llm = ChatGroq(model="llama-3.1-8b-instant", temperature=0).bind_tools(tools)
+smart_llm = ChatGroq(model="llama-3.3-70b-versatile", temperature=0)
 
 def market_analyst(state: AgentState):
+    """
+    PURPOSE: Only manages the conversation and tool calls.
+    DOES NOT write to state['market_data'] to avoid duplication.
+    """
+    time.sleep(1)
+    
+    # If a tool message just arrived, we don't call the LLM again.
+    # We return an empty update to let the Router move us to 'sync'.
     if isinstance(state["messages"][-1], ToolMessage):
-        return {"current_node": "Data Received ✅", "history": ["Tool execution finished."]}
-    sys_msg = "You are a Financial Analyst. Use get_financial_data for ALL tickers in the query."
+        return {"current_node": "Data Received ✅", "history": ["Tool execution complete."]}
+
+    sys_msg = (
+        "You are a Financial Analyst. Use get_financial_data for ALL tickers in the query. "
+        "If comparing multiple stocks, call the tool for each one. "
+        "Do not add .NS unless the user specifically typed it."
+    )
+    
     res = fast_llm.invoke([SystemMessage(content=sys_msg)] + state["messages"])
-    return {"messages": [res], "current_node": "Analyst Searching...", "history": ["Extracting tickers."]}
+    return {"messages": [res], "current_node": "Analyst Searching...", "history": ["Identifying tickers."]}
 
 def data_sync(state: AgentState):
-    tool_results = [msg.content for msg in state["messages"] if isinstance(msg, ToolMessage)]
-    return {"market_data": "\n".join(tool_results), "current_node": "Syncing Data...", "history": ["State synced."]}
+    """
+    PURPOSE: The ONLY node that writes to 'market_data'.
+    It uses a set() or unique logic to ensure no duplicates.
+    """
+    # Extract unique tool messages by content to prevent double-printing
+    tool_results = []
+    seen = set()
+    for msg in state["messages"]:
+        if isinstance(msg, ToolMessage) and msg.content not in seen:
+            tool_results.append(msg.content)
+            seen.add(msg.content)
+    
+    combined = "\n".join(tool_results)
+    return {
+        "market_data": combined, 
+        "current_node": "Syncing Data...", 
+        "history": ["State synchronized with unique records."]
+    }
 
 def risk_assessor(state: AgentState):
     res = smart_llm.invoke(f"Compare risks for: {state.get('market_data', '')}")
