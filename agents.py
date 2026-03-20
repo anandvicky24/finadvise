@@ -2,6 +2,7 @@ import os, operator, time
 from typing import Annotated, List, TypedDict, Literal
 from dotenv import load_dotenv
 from langchain_groq import ChatGroq
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.graph import StateGraph, END
 from langgraph.prebuilt import ToolNode
 from langchain_core.messages import SystemMessage, HumanMessage, ToolMessage
@@ -17,9 +18,18 @@ class AgentState(TypedDict):
     current_node: str
     messages: Annotated[List[any], operator.add]
     history: Annotated[List[str], operator.add]
+    
+fast_llm = ChatGoogleGenerativeAI(
+    model="gemini-1.5-flash",
+    temperature=0,
+    google_api_key=os.getenv("GOOGLE_API_KEY") # Picked up from Streamlit Secrets or .env
+).bind_tools(tools)
 
-fast_llm = ChatGroq(model="llama-3.1-8b-instant", temperature=0).bind_tools(tools)
-smart_llm = ChatGroq(model="llama-3.3-70b-versatile", temperature=0)
+smart_llm = ChatGoogleGenerativeAI(
+    model="gemini-1.5-pro",
+    temperature=0,
+    google_api_key=os.getenv("GOOGLE_API_KEY")
+)
 
 def market_analyst(state: AgentState):
     if isinstance(state["messages"][-1], ToolMessage):
