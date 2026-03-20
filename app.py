@@ -15,13 +15,13 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-st.title("🤖 FINAdvise: Comparative Intelligence")
+st.title("FINAdvise: Comparative Intelligence")
 
 st.sidebar.markdown("### 📡 System Status")
 status_placeholder = st.sidebar.empty()
 status_placeholder.info("System: Idle")
 
-query = st.text_input("Enter your query here:")
+query = st.text_input("Enter your query here: (For Indian Stock Market, include .NS e.g. TCS.NS)")
 
 if st.button("Run Full Intelligence Flow"):
     if query:
@@ -50,14 +50,14 @@ if st.button("Run Full Intelligence Flow"):
             st.divider()
             col1, col2 = st.columns(2)
             with col1:
-                st.subheader("📊 Combined Market Insights")
+                st.subheader("Stock Price")
                 st.info(result.get("market_data", "No data gathered."))
             with col2:
-                st.subheader("⚠️ Comparative Risk Assessment")
+                st.subheader("Comparative Risk Assessment")
                 st.warning(result.get("risk_score", "Risk analysis skipped."))
             
             st.divider()
-            st.subheader("📈 Final Strategic Recommendation")
+            st.subheader("Final Strategic Recommendation")
             st.success(result.get("portfolio_rec", "Recommendation missing."))
             
             st.balloons() # Visual celebration for "Done"
